@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CNY Catalog</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #b30000;
+    margin: 0;
+    padding: 20px;
+    color: white;
+}
+h1 {
+    text-align: center;
+    color: gold;
+    margin-bottom: 20px;
+}
+
+/* Category tabs */
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+}
+.tab {
+    background: gold;
+    color: black;
+    padding: 10px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+.tab.active {
+    background: black;
+    color: gold;
+}
+
+/* Products grid */
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 15px;
+}
+
+/* Product card */
+.product-card {
+    background: white;
+    color: black;
+    padding: 15px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s, box-shadow 0.2s, border 0.2s;
+    border: 2px solid transparent;
+}
+.product-card:hover {
+    border: 2px solid gold;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    transform: translateY(-2px);
+}
+.product-card.animate {
+    animation: pop 0.3s ease forwards;
+}
+@keyframes pop {
+    0% { transform: scale(1); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    50% { transform: scale(1.05); box-shadow: 0 6px 20px rgba(255,215,0,0.6); }
+    100% { transform: scale(1); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+}
+
+.product-card h3 {
+    font-size: 16px;
+    margin: 0 0 10px 0;
+}
+
+/* Inputs and buttons */
+select, input, button {
+    padding: 8px;
+    margin-top: 5px;
+    width: 100%;
+    border-radius: 6px;
+    font-size: 14px;
+}
+button {
+    border: none;
+    cursor: pointer;
+}
+.add-btn {
+    background: #d4af37;
+    font-weight: bold;
+}
+.cart {
+    background: white;
+    color: black;
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 12px;
+}
+.cart-item {
+    border-bottom: 1px solid #ddd;
+    padding: 8px 0;
+}
+.remove-btn {
+    background: crimson;
+    color: white;
+    margin-top: 5px;
+}
+.whatsapp-btn {
+    background: green;
+    color: white;
+    margin-top: 10px;
+    font-weight: bold;
+}
+.clear-btn {
+    background: red;
+    color: white;
+    margin-top: 10px;
+    font-weight: bold;
+}
+.total {
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+</style>
+</head>
+<body>
+
+<h1>🧧 CNY Product Catalog 🧧</h1>
+
+<div class="tabs" id="categoryTabs"></div>
+<div class="products-grid" id="products"></div>
+
+<div class="cart">
+    <h2>🛒 购物车</h2>
+    <div id="cartItems"></div>
+    <div class="total">
+        预计总数量: <span id="totalItems">0</span><br>
+        预计总额: RM <span id="total">0.00</span>
+    </div>
+    <button class="whatsapp-btn" onclick="sendWhatsApp()">Send Order via WhatsApp</button>
+    <button class="clear-btn" onclick="clearCart()">Clear Cart</button>
+</div>
+
+<script>
+const products = [
+    {
+        category: "Products",
+        name: "PM5050B",
+        options: [
+            { type: "3 Small Box", price: 5 },
+            { type: "1 Box", price: 35 }
+        ]
+    },
+    {
+        category: "Products",
+        name: "PM5050N",
+        options: [
+            { type: "4 Small Box", price: 5 },
+            { type: "1 Box", price: 25 }
+        ]
+    },
+    {
+        category: "Products",
+        name: "PM3030N",
+        options: [
+            { type: "1 pcs", price: 3 },
+            { type: "1 Box", price: 20 }
+        ]
+    }
+];
+
+let cart = [];
+let currentCategory = "Products";
+
+function renderTabs() {
+    const categories = [...new Set(products.map(p => p.category))];
+    const tabContainer = document.getElementById("categoryTabs");
+    tabContainer.innerHTML = "";
+    categories.forEach(cat => {
+        const tab = document.createElement("div");
+        tab.className = "tab";
+        tab.innerText = cat;
+        if(cat === currentCategory) tab.classList.add("active");
+        tab.onclick = () => {
+            currentCategory = cat;
+            renderProducts();
+        };
+        tabContainer.appendChild(tab);
+    });
+}
+
+function renderProducts() {
+    const container = document.getElementById("products");
+    container.innerHTML = "";
+    renderTabs();
+    products.filter(p => p.category === currentCategory).forEach((product, index) => {
+        const realIndex = products.indexOf(product);
+        container.innerHTML += `
+            <div class="product-card" id="card-${realIndex}">
+                <h3>${product.name}</h3>
+                <select id="select-${realIndex}">
+                    ${product.options.map(opt => `<option value="${opt.price}">${opt.type} - RM ${opt.price}</option>`).join("")}
+                </select>
+                <input type="number" id="qty-${realIndex}" value="1" min="1">
+                <button class="add-btn" onclick="addToCart(${realIndex})">Add to Cart</button>
+            </div>
+        `;
+    });
+}
+
+function addToCart(index) {
+    const select = document.getElementById(`select-${index}`);
+    const qty = parseInt(document.getElementById(`qty-${index}`).value);
+    const selectedOption = select.options[select.selectedIndex];
+    const price = parseFloat(selectedOption.value);
+    const type = selectedOption.text;
+    cart.push({name: products[index].name, type: type, price: price, qty: qty});
+    updateCart();
+    const card = document.getElementById(`card-${index}`);
+    card.classList.add("animate");
+    setTimeout(() => card.classList.remove("animate"), 300);
+}
+
+function updateCart() {
+    const cartDiv = document.getElementById("cartItems");
+    cartDiv.innerHTML = "";
+    let total = 0;
+    let totalItems = 0;
+    cart.forEach((item, i) => {
+        let itemTotal = item.price * item.qty;
+        total += itemTotal;
+        totalItems += item.qty;
+        cartDiv.innerHTML += `
+            <div class="cart-item">
+                ${item.name} - ${item.type} × ${item.qty}<br>RM ${itemTotal.toFixed(2)}
+                <button class="remove-btn" onclick="removeItem(${i})">Remove</button>
+            </div>
+        `;
+    });
+    document.getElementById("total").innerText = total.toFixed(2);
+    document.getElementById("totalItems").innerText = totalItems;
+}
+
+function removeItem(index) {
+    cart.splice(index, 1);
+    updateCart();
+}
+
+function clearCart() {
+    if(confirm("Are you sure you want to clear the cart?")) {
+        cart = [];
+        updateCart();
+    }
+}
+
+function sendWhatsApp() {
+    if(cart.length === 0){
+        alert("Cart is empty!");
+        return;
+    }
+    let message = "Hello, I would like to order:%0A%0A";
+    cart.forEach(item => {
+        message += `- ${item.name} (${item.type}) x ${item.qty}%0A`;
+    });
+    message += `%0A预计总数量: ${document.getElementById("totalItems").innerText}`;
+    message += `%0A预计总额: RM ${document.getElementById("total").innerText}`;
+    window.open(`https://wa.me/60147093773?text=${message}`, "_blank");
+}
+
+renderProducts();
+</script>
+
+</body>
+</html>
