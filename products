@@ -1,280 +1,321 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CNY Catalog</title>
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background: #b30000;
-    margin: 0;
-    padding: 20px;
-    color: white;
-}
-h1 {
-    text-align: center;
-    color: gold;
-    margin-bottom: 20px;
-}
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Receipt, X, CheckCircle2, Package, Sparkles, History, LayoutDashboard, Clock, Download } from 'lucide-react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from 'firebase/firestore';
 
-/* Category tabs */
-.tabs {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    overflow-x: auto;
-}
-.tab {
-    background: gold;
-    color: black;
-    padding: 10px 15px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-weight: bold;
-    white-space: nowrap;
-    transition: all 0.2s;
-}
-.tab.active {
-    background: black;
-    color: gold;
-}
+// Firebase 初始配置
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'fireworks-pos-default';
 
-/* Products grid */
-.products-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 15px;
-}
-
-/* Product card */
-.product-card {
-    background: white;
-    color: black;
-    padding: 15px;
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: transform 0.2s, box-shadow 0.2s, border 0.2s;
-    border: 2px solid transparent;
-}
-.product-card:hover {
-    border: 2px solid gold;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    transform: translateY(-2px);
-}
-.product-card.animate {
-    animation: pop 0.3s ease forwards;
-}
-@keyframes pop {
-    0% { transform: scale(1); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-    50% { transform: scale(1.05); box-shadow: 0 6px 20px rgba(255,215,0,0.6); }
-    100% { transform: scale(1); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-}
-
-.product-card h3 {
-    font-size: 16px;
-    margin: 0 0 10px 0;
-}
-
-/* Inputs and buttons */
-select, input, button {
-    padding: 8px;
-    margin-top: 5px;
-    width: 100%;
-    border-radius: 6px;
-    font-size: 14px;
-}
-button {
-    border: none;
-    cursor: pointer;
-}
-.add-btn {
-    background: #d4af37;
-    font-weight: bold;
-}
-.cart {
-    background: white;
-    color: black;
-    padding: 15px;
-    margin-top: 20px;
-    border-radius: 12px;
-}
-.cart-item {
-    border-bottom: 1px solid #ddd;
-    padding: 8px 0;
-}
-.remove-btn {
-    background: crimson;
-    color: white;
-    margin-top: 5px;
-}
-.whatsapp-btn {
-    background: green;
-    color: white;
-    margin-top: 10px;
-    font-weight: bold;
-}
-.clear-btn {
-    background: red;
-    color: white;
-    margin-top: 10px;
-    font-weight: bold;
-}
-.total {
-    font-size: 16px;
-    font-weight: bold;
-    margin-top: 10px;
-}
-</style>
-</head>
-<body>
-
-<h1>🧧 CNY Product Catalog 🧧</h1>
-
-<div class="tabs" id="categoryTabs"></div>
-<div class="products-grid" id="products"></div>
-
-<div class="cart">
-    <h2>🛒 购物车</h2>
-    <div id="cartItems"></div>
-    <div class="total">
-        预计总数量: <span id="totalItems">0</span><br>
-        预计总额: RM <span id="total">0.00</span>
-    </div>
-    <button class="whatsapp-btn" onclick="sendWhatsApp()">Send Order via WhatsApp</button>
-    <button class="clear-btn" onclick="clearCart()">Clear Cart</button>
-</div>
-
-<script>
-const products = [
-    {
-        category: "Products",
-        name: "PM5050B",
-        options: [
-            { type: "3 Small Box", price: 5 },
-            { type: "1 Box", price: 35 }
-        ]
-    },
-    {
-        category: "Products",
-        name: "PM5050N",
-        options: [
-            { type: "4 Small Box", price: 5 },
-            { type: "1 Box", price: 25 }
-        ]
-    },
-    {
-        category: "Products",
-        name: "PM3030N",
-        options: [
-            { type: "1 pcs", price: 3 },
-            { type: "1 Box", price: 20 }
-        ]
-    }
+// 產品數據
+const INITIAL_PRODUCTS = [
+  { id: 'PM11N', name: '小霞光', price: 16 },
+  { id: 'PM22N', name: '7" 電光花', price: 24 },
+  { id: 'PM33N', name: '小安全', price: 10 },
+  { id: '33', name: '夜空之星', price: 5 },
+  { id: '33N', name: '彩色棒', price: 10 },
+  { id: 'PM2525N', name: '18寸金色電光花', price: 20 },
+  { id: '2525', name: '18寸快樂小神鞭', price: 20 },
+  { id: 'PM3636N', name: '14寸電光花', price: 20 },
+  { id: 'PM3939N', name: '大號霞光', price: 20 },
+  { id: 'PM44N', name: '7" 雪糕', price: 22 },
+  { id: 'PM4848N', name: '15寸雪糕', price: 88 },
+  { id: 'PM66N', name: '春天芭蕾', price: 15 },
+  { id: 'PM77N', name: '炸珠大地開花', price: 20 },
+  { id: '88', name: '歡樂花仙', price: 15 },
+  { id: 'PM99N', name: '蓮花開', price: 20 },
+  { id: 'PM1010N', name: '茶花香', price: 20 },
+  { id: 'PM1212N', name: '龍蛋', price: 15 },
+  { id: 'PM1212_B', name: '大龍蛋', price: 20 },
+  { id: 'PM2828N', name: '小黃蜂', price: 4 },
+  { id: 'PM3030N', name: '太空飛碟', price: 20 },
+  { id: '3030', name: '水母奇緣', price: 20 },
+  { id: 'PM3232N', name: '金玉滿堂', price: 15 },
+  { id: 'PM1313N', name: '8尺紅炮(帶膽)', price: 8 },
+  { id: '1313', name: '8尺玫瑰紅炮(帶膽)', price: 16 },
+  { id: '50K', name: '50000紅炮', price: 160 },
+  { id: 'PM3434N', name: '火柴炮', price: 18 },
+  { id: 'PM3838N', name: '順利紅', price: 4 },
+  { id: '4040', name: '3發雨打芭蕉', price: 40 },
+  { id: 'PM4444N', name: '10波霹靂雨', price: 18 },
+  { id: 'PM3737N', name: '炸珠響天雷', price: 30 },
+  { id: '3737', name: '狼嚎火箭', price: 35 },
+  { id: 'PM4141N', name: '嘯聲月旅行', price: 25 },
+  { id: 'PM1717N', name: '4寸49發盆花', price: 50 },
+  { id: 'PM2424N', name: '4寸36發盆花', price: 38 },
+  { id: '2424N', name: '閃亮美人100發', price: 25 },
+  { id: 'PM4646N', name: '4寸25發盆花', price: 28 },
+  { id: '4138', name: '4寸138發組合煙花', price: 138 },
+  { id: '4168', name: '4寸168發組合煙花', price: 168 },
+  { id: '4228', name: '4寸228發組合煙花', price: 228 },
+  { id: 'PM5757', name: '星夜彩虹', price: 24 },
+  { id: 'JL9559_W', name: '狼嚎雨打芭蕉', price: 35 },
+  { id: 'JL9559', name: '混合雨打芭蕉 (1.5")', price: 35 },
+  { id: 'JL9559_2', name: '金鈦柳雨打芭蕉 (1.8")', price: 40 },
+  { id: 'JL5995', name: '混合雨打芭蕉 (小號)', price: 15 },
+  { id: 'JL933', name: '15波魔術彈', price: 12 },
+  { id: 'JL966', name: '20波魔術彈', price: 16 },
+  { id: 'JL977', name: '30波魔術彈', price: 22 },
+  { id: 'JL944', name: '8波羅馬燭光', price: 24 },
+  { id: 'JL988_FCS', name: '發財樹', price: 15 },
+  { id: 'JL988_MT', name: '金錢樹', price: 15 },
+  { id: 'JL988', name: '方方得利', price: 18 },
+  { id: 'JL9955', name: '孔雀開屏', price: 25 },
+  { id: 'JL9966_F', name: '君臨星空', price: 25 },
+  { id: 'JL5599', name: '飛天鼠', price: 18 },
+  { id: 'JL988_MD', name: '滿地珍珠', price: 15 },
+  { id: 'JL988_HX', name: '凌光六耀', price: 15 },
+  { id: 'JL9911', name: '3寸雪糕', price: 15 },
+  { id: 'JL9922', name: '10寸雪糕', price: 50 },
+  { id: 'JL11_4', name: '四色花', price: 18 },
+  { id: 'JL9966_K', name: '風車', price: 48 },
+  { id: 'JL9500', name: '彩色砂炮', price: 25 },
+  { id: 'JL9500_B', name: '大彩色砂炮', price: 35 },
+  { id: 'JL9500_T', name: '雷霆砂炮', price: 25 },
+  { id: 'JL88_B', name: '大號金玉滿堂', price: 25 },
+  { id: 'JL1222', name: '88尺彩光滿地玫瑰', price: 168 },
+  { id: 'JL1223', name: '88尺彩光滿地黃金', price: 168 },
+  { id: 'JL1224', name: '88尺彩光紅色地毯', price: 150 },
+  { id: 'JL1225', name: '38尺彩光滿地玫瑰 (帶膽)', price: 110 },
+  { id: 'JL1226', name: '38尺彩光滿地黃金 (帶膽)', price: 110 },
+  { id: 'JL1227', name: '38尺彩光紅焰風暴 (帶膽)', price: 100 },
+  { id: 'JL1228', name: '38尺彩光三色流光', price: 128 },
 ];
 
-let cart = [];
-let currentCategory = "Products";
+export default function App() {
+  const [view, setView] = useState('pos'); 
+  const [user, setUser] = useState(null);
+  const [cart, setCart] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [history, setHistory] = useState([]);
 
-function renderTabs() {
-    const categories = [...new Set(products.map(p => p.category))];
-    const tabContainer = document.getElementById("categoryTabs");
-    tabContainer.innerHTML = "";
-    categories.forEach(cat => {
-        const tab = document.createElement("div");
-        tab.className = "tab";
-        tab.innerText = cat;
-        if(cat === currentCategory) tab.classList.add("active");
-        tab.onclick = () => {
-            currentCategory = cat;
-            renderProducts();
-        };
-        tabContainer.appendChild(tab);
+  useEffect(() => {
+    const initAuth = async () => {
+      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        await signInWithCustomToken(auth, __initial_auth_token);
+      } else {
+        await signInAnonymously(auth);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const ordersRef = collection(db, 'artifacts', appId, 'public', 'data', 'orders');
+    const unsubscribe = onSnapshot(ordersRef, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const sorted = docs.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+      setHistory(sorted);
+    }, (error) => console.error("Firestore Error:", error));
+    return () => unsubscribe();
+  }, [user]);
+
+  const updateQuantity = (id, delta) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        const newQty = Math.max(0, item.quantity + delta);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }).filter(item => item.quantity > 0));
+  };
+
+  const addToCart = (product) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.id === product.id);
+      if (existing) {
+        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { ...product, quantity: 1 }];
     });
-}
+  };
 
-function renderProducts() {
-    const container = document.getElementById("products");
-    container.innerHTML = "";
-    renderTabs();
-    products.filter(p => p.category === currentCategory).forEach((product, index) => {
-        const realIndex = products.indexOf(product);
-        container.innerHTML += `
-            <div class="product-card" id="card-${realIndex}">
-                <h3>${product.name}</h3>
-                <select id="select-${realIndex}">
-                    ${product.options.map(opt => `<option value="${opt.price}">${opt.type} - RM ${opt.price}</option>`).join("")}
-                </select>
-                <input type="number" id="qty-${realIndex}" value="1" min="1">
-                <button class="add-btn" onclick="addToCart(${realIndex})">Add to Cart</button>
-            </div>
-        `;
-    });
-}
+  const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-function addToCart(index) {
-    const select = document.getElementById(`select-${index}`);
-    const qty = parseInt(document.getElementById(`qty-${index}`).value);
-    const selectedOption = select.options[select.selectedIndex];
-    const price = parseFloat(selectedOption.value);
-    const type = selectedOption.text;
-    cart.push({name: products[index].name, type: type, price: price, qty: qty});
-    updateCart();
-    const card = document.getElementById(`card-${index}`);
-    card.classList.add("animate");
-    setTimeout(() => card.classList.remove("animate"), 300);
-}
-
-function updateCart() {
-    const cartDiv = document.getElementById("cartItems");
-    cartDiv.innerHTML = "";
-    let total = 0;
-    let totalItems = 0;
-    cart.forEach((item, i) => {
-        let itemTotal = item.price * item.qty;
-        total += itemTotal;
-        totalItems += item.qty;
-        cartDiv.innerHTML += `
-            <div class="cart-item">
-                ${item.name} - ${item.type} × ${item.qty}<br>RM ${itemTotal.toFixed(2)}
-                <button class="remove-btn" onclick="removeItem(${i})">Remove</button>
-            </div>
-        `;
-    });
-    document.getElementById("total").innerText = total.toFixed(2);
-    document.getElementById("totalItems").innerText = totalItems;
-}
-
-function removeItem(index) {
-    cart.splice(index, 1);
-    updateCart();
-}
-
-function clearCart() {
-    if(confirm("Are you sure you want to clear the cart?")) {
-        cart = [];
-        updateCart();
+  const saveOrderToCloud = async () => {
+    if (!user || cart.length === 0) return;
+    setIsSaving(true);
+    try {
+      const orderData = {
+        items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
+        totalPrice,
+        totalItems,
+        timestamp: serverTimestamp(),
+        staffId: user.uid
+      };
+      const ordersRef = collection(db, 'artifacts', appId, 'public', 'data', 'orders');
+      await addDoc(ordersRef, orderData);
+      setCart([]);
+      setShowReceipt(false);
+      setIsSaving(false);
+    } catch (err) {
+      console.error("Save failed:", err);
+      setIsSaving(false);
     }
-}
+  };
 
-function sendWhatsApp() {
-    if(cart.length === 0){
-        alert("Cart is empty!");
-        return;
-    }
-    let message = "Hello, I would like to order:%0A%0A";
-    cart.forEach(item => {
-        message += `- ${item.name} (${item.type}) x ${item.qty}%0A`;
+  // 導出 Excel (CSV) 功能
+  const exportToCSV = () => {
+    if (history.length === 0) return;
+    let csvContent = "\uFEFF"; // UTF-8 BOM 避免中文亂碼
+    csvContent += "時間,訂單編號,總金額,商品詳情\n";
+    
+    history.forEach(order => {
+      const time = order.timestamp?.toDate ? order.timestamp.toDate().toLocaleString().replace(/,/g, ' ') : 'N/A';
+      const details = order.items?.map(i => `${i.id}(${i.name})x${i.quantity}`).join(' | ') || '';
+      csvContent += `${time},${order.id},RM ${order.totalPrice},${details}\n`;
     });
-    message += `%0A预计总数量: ${document.getElementById("totalItems").innerText}`;
-    message += `%0A预计总额: RM ${document.getElementById("total").innerText}`;
-    window.open(`https://wa.me/60147093773?text=${message}`, "_blank");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `煙花銷售紀錄_${new Date().toLocaleDateString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 select-none">
+      <header className="bg-red-600 text-white p-4 shadow-lg sticky top-0 z-40 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <Sparkles className="text-yellow-300 fill-current" size={24} />
+          <h1 className="text-xl font-black tracking-tighter">煙花 POS</h1>
+        </div>
+        <div className="flex bg-black/10 rounded-xl p-1">
+          <button onClick={() => setView('pos')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${view === 'pos' ? 'bg-white text-red-600 shadow-sm' : 'text-white/70 hover:text-white'}`}>
+            <LayoutDashboard size={18} /> 開單
+          </button>
+          <button onClick={() => setView('history')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${view === 'history' ? 'bg-white text-red-600 shadow-sm' : 'text-white/70 hover:text-white'}`}>
+            <History size={18} /> 紀錄
+          </button>
+        </div>
+      </header>
+
+      {view === 'pos' ? (
+        <>
+          <div className="p-4 bg-white border-b sticky top-[72px] z-30 shadow-sm">
+            <div className="relative max-w-2xl mx-auto text-indigo-700">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <input 
+                type="text" 
+                placeholder="搜尋代號或產品名稱..."
+                className="w-full pl-12 pr-4 py-4 bg-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all text-lg font-bold"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <main className="flex-1 p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pb-44">
+            {INITIAL_PRODUCTS.filter(p => p.id.toLowerCase().includes(searchTerm.toLowerCase()) || p.name.toLowerCase().includes(searchTerm.toLowerCase())).map(product => (
+              <button key={product.id} onClick={() => addToCart(product)} className="bg-white p-4 rounded-[2rem] shadow-sm border-2 border-slate-50 flex flex-col items-start text-left active:scale-95 transition-all hover:border-indigo-100">
+                <div className="w-full bg-indigo-50 text-indigo-700 px-3 py-2 rounded-2xl mb-3 flex items-center justify-center">
+                  <span className="text-lg font-black tracking-wider uppercase truncate">{product.id}</span>
+                </div>
+                <span className="font-bold text-slate-600 text-sm mb-3 h-10 line-clamp-2 leading-tight">{product.name}</span>
+                <div className="mt-auto w-full flex items-center justify-between">
+                  <div className="flex items-baseline"><span className="text-[10px] font-black text-slate-400 mr-0.5">RM</span><span className="text-xl font-black text-slate-900">{product.price.toFixed(2)}</span></div>
+                  <div className="bg-red-500 text-white rounded-full p-1 shadow-sm"><Plus size={16} /></div>
+                </div>
+              </button>
+            ))}
+          </main>
+
+          <div className={`fixed bottom-0 left-0 right-0 bg-white border-t p-4 transition-all duration-500 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] ${cart.length > 0 ? 'translate-y-0' : 'translate-y-full'}`}>
+            <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">應收總額</span>
+                <div className="flex items-baseline gap-1"><span className="text-sm font-bold text-red-600">RM</span><span className="text-4xl font-black text-red-600 tabular-nums">{totalPrice.toFixed(2)}</span></div>
+              </div>
+              <button onClick={() => setShowReceipt(true)} className="bg-red-600 text-white font-black px-12 h-16 rounded-2xl flex items-center justify-center gap-3 active:bg-red-700 shadow-xl shadow-red-200 text-xl text-indigo-700">
+                <Receipt size={24} /> 結帳
+              </button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <main className="flex-1 p-4 max-w-2xl mx-auto w-full pb-20">
+          <div className="flex justify-between items-center mb-6 pt-4">
+            <h2 className="text-2xl font-black text-slate-800">銷售紀錄明細</h2>
+            <button onClick={exportToCSV} className="bg-green-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 active:scale-95 transition-transform">
+              <Download size={14} /> 導出 Excel
+            </button>
+          </div>
+          <div className="space-y-4">
+            {history.map((order) => (
+              <div key={order.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                    <Clock size={16}/> {order.timestamp?.toDate ? order.timestamp.toDate().toLocaleString() : '存檔中...'}
+                  </div>
+                  <div className="text-lg font-black text-red-600">RM {order.totalPrice?.toFixed(2)}</div>
+                </div>
+                <div className="bg-slate-50 rounded-2xl p-4 space-y-2">
+                  {order.items?.map((item, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-slate-600 font-medium truncate pr-4">
+                        <span className="text-indigo-600 font-bold mr-2">[{item.id}]</span>{item.name}
+                      </span>
+                      <span className="text-slate-400 shrink-0 font-bold">x{item.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
+      )}
+
+      {showReceipt && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 text-indigo-700">
+          <div className="bg-white w-full max-w-md rounded-t-[3rem] sm:rounded-[2.5rem] flex flex-col max-h-[85vh] overflow-hidden animate-in slide-in-from-bottom">
+            <div className="p-8 pb-4 flex justify-between items-center bg-slate-50/50">
+              <h2 className="text-2xl font-black text-slate-800">核對清單</h2>
+              <button onClick={() => setShowReceipt(false)} className="bg-slate-200 text-slate-500 p-2 rounded-full"><X size={20}/></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-8 pt-0 space-y-5">
+              {cart.map(item => (
+                <div key={item.id} className="flex items-center gap-4 py-2 border-b border-slate-50">
+                  <div className="w-16 h-10 bg-indigo-50 text-indigo-700 rounded-xl flex items-center justify-center font-black text-xs uppercase shrink-0">{item.id}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-slate-800 truncate text-sm">{item.name}</div>
+                    <div className="text-xs font-bold text-slate-400">RM {item.price.toFixed(2)}</div>
+                  </div>
+                  <div className="flex items-center gap-2 bg-slate-100 rounded-xl p-1 shrink-0 text-slate-500">
+                    <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center active:text-red-500"><Minus size={16}/></button>
+                    <span className="font-black w-4 text-center text-sm">{item.quantity}</span>
+                    <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center active:text-green-500"><Plus size={16}/></button>
+                  </div>
+                </div>
+              ))}
+              <div className="pt-6 border-t-2 border-dashed border-slate-100 space-y-4">
+                <div className="flex justify-between items-end bg-red-50 p-5 rounded-3xl">
+                  <span className="font-black text-red-600 text-lg leading-none">收現金額</span>
+                  <div className="text-right"><span className="text-sm font-bold text-red-600 mr-1 uppercase">RM</span><span className="text-4xl font-black text-red-600 tabular-nums leading-none">{totalPrice.toFixed(2)}</span></div>
+                </div>
+              </div>
+            </div>
+            <div className="p-8 pt-0 bg-white">
+              <button onClick={saveOrderToCloud} disabled={isSaving || cart.length === 0} className={`w-full py-5 rounded-[1.5rem] font-black text-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 ${isSaving ? 'bg-slate-200 text-slate-400' : 'bg-red-600 text-white'}`}>
+                <CheckCircle2 size={28} />
+                {isSaving ? '存檔中...' : '確認收到錢'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
-
-renderProducts();
-</script>
-
-</body>
-</html>
