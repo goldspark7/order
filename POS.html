@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>烟花档口收银系统</title>
+    <title>烟花档口收银系统 - 分类版</title>
     <!-- 加载样式和库 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -13,93 +13,98 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .active-scale:active { transform: scale(0.95); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-slate-50">
+<body class="bg-slate-100">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useMemo, useEffect } = React;
 
-        // 产品数据
+        // 完整产品数据
         const PRODUCTS = [
-            { id: 'PM11N', name: '小霞光', price: 16 },
-            { id: 'PM22N', name: '7" 电光花', price: 24 },
-            { id: 'PM33N', name: '小安全', price: 10 },
-            { id: '33', name: '夜空之星', price: 5 },
-            { id: '33N', name: '彩色棒', price: 10 },
-            { id: 'PM2525N', name: '18寸金色电光花', price: 20 },
-            { id: '2525', name: '18寸快乐小神鞭', price: 20 },
-            { id: 'PM3636N', name: '14寸电光花', price: 20 },
-            { id: 'PM3939N', name: '大号霞光', price: 20 },
-            { id: 'PM44N', name: '7" 雪糕', price: 22 },
-            { id: 'PM4848N', name: '15寸雪糕', price: 88 },
-            { id: 'PM66N', name: '春天芭蕾', price: 15 },
-            { id: 'PM77N', name: '炸珠大地开花', price: 20 },
-            { id: '88', name: '欢乐花仙', price: 15 },
-            { id: 'PM99N', name: '莲花开', price: 20 },
-            { id: 'PM1010N', name: '茶花香', price: 20 },
-            { id: 'PM1212N', name: '龙蛋', price: 15 },
-            { id: 'PM1212_B', name: '大龙蛋', price: 20 },
-            { id: 'PM2828N', name: '小黄蜂', price: 4 },
-            { id: 'PM3030N', name: '太空飞碟', price: 20 },
-            { id: '3030', name: '水母奇缘', price: 20 },
-            { id: 'PM3232N', name: '金玉满堂', price: 15 },
-            { id: 'PM1313N', name: '8尺红炮(带胆)', price: 8 },
-            { id: '1313', name: '8尺玫瑰红炮(带胆)', price: 16 },
-            { id: '50K', name: '50000红炮', price: 160 },
-            { id: 'PM3434N', name: '火柴炮', price: 18 },
-            { id: 'PM3838N', name: '顺利红', price: 4 },
-            { id: '4040', name: '3发雨打芭蕉', price: 40 },
-            { id: 'PM4444N', name: '10波霹雳雨', price: 18 },
-            { id: 'PM3737N', name: '炸珠响天雷', price: 30 },
-            { id: '3737', name: '狼嚎火箭', price: 35 },
-            { id: 'PM4141N', name: '啸声月旅行', price: 25 },
-            { id: 'PM1717N', name: '4寸49发盆花', price: 50 },
-            { id: 'PM2424N', name: '4寸36发盆花', price: 38 },
-            { id: '2424N', name: '闪亮美人100发', price: 25 },
-            { id: 'PM4646N', name: '4寸25发盆花', price: 28 },
-            { id: '4138', name: '4寸138发组合烟花', price: 138 },
-            { id: '4168', name: '4寸168发组合烟花', price: 168 },
-            { id: '4228', name: '4寸228发组合烟花', price: 228 },
-            { id: 'PM5757', name: '星夜彩虹', price: 24 },
-            { id: 'JL9559_W', name: '狼嚎雨打芭蕉', price: 35 },
-            { id: 'JL9559', name: '混合雨打芭蕉 (1.5")', price: 35 },
-            { id: 'JL9559_2', name: '金钛柳雨打芭蕉 (1.8")', price: 40 },
-            { id: 'JL5995', name: '混合雨打芭蕉 (小号)', price: 15 },
-            { id: 'JL933', name: '15波魔术弹', price: 12 },
-            { id: 'JL966', name: '20波魔术弹', price: 16 },
-            { id: 'JL977', name: '30波魔术弹', price: 22 },
-            { id: 'JL944', name: '8波罗马烛光', price: 24 },
-            { id: 'JL988_FCS', name: '发财树', price: 15 },
-            { id: 'JL988_MT', name: '金钱树', price: 15 },
-            { id: 'JL988', name: '方方得利', price: 18 },
-            { id: 'JL9955', name: '孔雀开屏', price: 25 },
-            { id: 'JL9966_F', name: '君临星空', price: 25 },
-            { id: 'JL5599', name: '飞天鼠', price: 18 },
-            { id: 'JL988_MD', name: '满地珍珠', price: 15 },
-            { id: 'JL988_HX', name: '凌光六耀', price: 15 },
-            { id: 'JL9911', name: '3寸雪糕', price: 15 },
-            { id: 'JL9922', name: '10寸雪糕', price: 50 },
-            { id: 'JL11_4', name: '四色花', price: 18 },
-            { id: 'JL9966_K', name: '风车', price: 48 },
-            { id: 'JL9500', name: '彩色砂炮', price: 25 },
-            { id: 'JL9500_B', name: '大彩色砂炮', price: 35 },
-            { id: 'JL9500_T', name: '雷霆砂炮', price: 25 },
-            { id: 'JL88_B', name: '大号金玉满堂', price: 25 },
-            { id: 'JL1222', name: '88尺彩光满地玫瑰', price: 168 },
-            { id: 'JL1223', name: '88尺彩光满地黄金', price: 168 },
-            { id: 'JL1224', name: '88尺彩光红色地毯', price: 150 },
-            { id: 'JL1225', name: '38尺彩光满地玫瑰 (带胆)', price: 110 },
-            { id: 'JL1226', name: '38尺彩光满地黄金 (带胆)', price: 110 },
-            { id: 'JL1227', name: '38尺彩光红焰风暴 (带胆)', price: 100 },
-            { id: 'JL1228', name: '38尺彩光三色流光', price: 128 },
+            { id: 'PM11N', name: '小霞光', price: 16, category: '手持系列' },
+            { id: 'PM22N', name: '7" 电光花', price: 24, category: '手持系列' },
+            { id: 'PM33N', name: '小安全', price: 10, category: '手持系列' },
+            { id: '33', name: '夜空之星', price: 5, category: '手持系列' },
+            { id: '33N', name: '彩色棒', price: 10, category: '手持系列' },
+            { id: 'PM2525N', name: '18寸金色电光花', price: 20, category: '手持系列' },
+            { id: '2525', name: '18寸快乐小神鞭', price: 20, category: '手持系列' },
+            { id: 'PM3636N', name: '14寸电光花', price: 20, category: '手持系列' },
+            { id: 'PM3939N', name: '大号霞光', price: 20, category: '手持系列' },
+            { id: 'PM44N', name: '7" 雪糕', price: 22, category: '花筒系列' },
+            { id: 'PM4848N', name: '15寸雪糕', price: 88, category: '花筒系列' },
+            { id: 'PM66N', name: '春天芭蕾', price: 15, category: '花筒系列' },
+            { id: 'PM77N', name: '炸珠大地开花', price: 20, category: '玩具烟花系列' },
+            { id: '88', name: '欢乐花仙', price: 15, category: '花筒系列' },
+            { id: 'PM99N', name: '莲花开', price: 20, category: '玩具烟花系列' },
+            { id: 'PM1010N', name: '茶花香', price: 20, category: '玩具烟花系列' },
+            { id: 'PM1212N', name: '龙蛋', price: 15, category: '玩具烟花系列' },
+            { id: 'PM1212_B', name: '大龙蛋', price: 20, category: '玩具烟花系列' },
+            { id: 'PM2828N', name: '小黄蜂', price: 4, category: '玩具烟花系列' },
+            { id: 'PM3030N', name: '太空飞碟', price: 20, category: '玩具烟花系列' },
+            { id: '3030', name: '水母奇缘', price: 20, category: '玩具烟花系列' },
+            { id: 'PM3232N', name: '金玉满堂', price: 15, category: '玩具烟花系列' },
+            { id: 'PM1313N', name: '8尺红炮(带胆)', price: 8, category: '传统鞭炮' },
+            { id: '1313', name: '8尺玫瑰红炮(带胆)', price: 16, category: '传统鞭炮' },
+            { id: '50K', name: '50000红炮', price: 160, category: '传统鞭炮' },
+            { id: 'PM3434N', name: '火柴炮', price: 18, category: '传统鞭炮' },
+            { id: 'PM3838N', name: '顺利红', price: 4, category: '传统鞭炮' },
+            { id: '4040', name: '3发雨打芭蕉', price: 40, category: '单发系列' },
+            { id: 'PM4444N', name: '10波霹雳雨', price: 18, category: '吐珠/火箭系列' },
+            { id: 'PM3737N', name: '炸珠响天雷', price: 30, category: '吐珠/火箭系列' },
+            { id: '3737', name: '狼嚎火箭', price: 35, category: '吐珠/火箭系列' },
+            { id: 'PM4141N', name: '啸声月旅行', price: 25, category: '吐珠/火箭系列' },
+            { id: 'PM1717N', name: '4寸49发盆花', price: 50, category: '盆花/大组合' },
+            { id: 'PM2424N', name: '4寸36发盆花', price: 38, category: '盆花/大组合' },
+            { id: '2424N', name: '闪亮美人100发', price: 25, category: '盆花/大组合' },
+            { id: 'PM4646N', name: '4寸25发盆花', price: 28, category: '盆花/大组合' },
+            { id: '4138', name: '4寸138发组合烟花', price: 138, category: '盆花/大组合' },
+            { id: '4168', name: '4寸168发组合烟花', price: 168, category: '盆花/大组合' },
+            { id: '4228', name: '4寸228发组合烟花', price: 228, category: '盆花/大组合' },
+            { id: 'PM5757', name: '星夜彩虹', price: 24, category: '花筒系列' },
+            { id: 'JL9559_W', name: '狼嚎雨打芭蕉', price: 35, category: '单发系列' },
+            { id: 'JL9559', name: '混合雨打芭蕉 (1.5")', price: 35, category: '单发系列' },
+            { id: 'JL9559_2', name: '大号雨打芭蕉 (1.8")', price: 40, category: '单发系列' },
+            { id: 'JL5995', name: '混合雨打芭蕉 (小号)', price: 15, category: '单发系列' },
+            { id: 'JL933', name: '15波魔术弹', price: 12, category: '吐珠/火箭系列' },
+            { id: 'JL966', name: '20波魔术弹', price: 16, category: '吐珠/火箭系列' },
+            { id: 'JL977', name: '30波魔术弹', price: 22, category: '吐珠/火箭系列' },
+            { id: 'JL944', name: '8波罗马烛光', price: 24, category: '吐珠/火箭系列' },
+            { id: 'JL988_FCS', name: '发财树', price: 15, category: '花筒系列' },
+            { id: 'JL988_MT', name: '金钱树', price: 15, category: '花筒系列' },
+            { id: 'JL988', name: '方方得利', price: 18, category: '花筒系列' },
+            { id: 'JL9955', name: '孔雀开屏', price: 25, category: '花筒系列' },
+            { id: 'JL9966_F', name: '君临星空', price: 25, category: '盆花/大组合' },
+            { id: 'JL5599', name: '飞天鼠', price: 18, category: '花筒系列' },
+            { id: 'JL988_MD', name: '满地珍珠', price: 15, category: '花筒系列' },
+            { id: 'JL988_HX', name: '凌光六耀', price: 15, category: '花筒系列' },
+            { id: 'JL9911', name: '3寸雪糕', price: 15, category: '花筒系列' },
+            { id: 'JL9922', name: '10寸雪糕', price: 50, category: '花筒系列' },
+            { id: 'JL11_4', name: '四色花', price: 18, category: '手持系列' },
+            { id: 'JL9966_K', name: '风车', price: 48, category: '手持系列' },
+            { id: 'JL9500', name: '彩色砂炮', price: 25, category: '玩具烟花系列' },
+            { id: 'JL9500_B', name: '大彩色砂炮', price: 35, category: '玩具烟花系列' },
+            { id: 'JL9500_T', name: '雷霆砂炮', price: 25, category: '玩具烟花系列' },
+            { id: 'JL88_B', name: '大号金玉满堂', price: 25, category: '玩具烟花系列' },
+            { id: 'JL1222', name: '88尺彩光满地玫瑰', price: 168, category: '传统鞭炮' },
+            { id: 'JL1223', name: '88尺彩光满地黄金', price: 168, category: '传统鞭炮' },
+            { id: 'JL1224', name: '88尺彩光红色地毯', price: 150, category: '传统鞭炮' },
+            { id: 'JL1225', name: '38尺彩光满地玫瑰 (带胆)', price: 110, category: '传统鞭炮' },
+            { id: 'JL1226', name: '38尺彩光满地黄金 (带胆)', price: 110, category: '传统鞭炮' },
+            { id: 'JL1227', name: '38尺彩光红焰风暴 (带胆)', price: 100, category: '传统鞭炮' },
+            { id: 'JL1228', name: '38尺彩光三色流光', price: 128, category: '传统鞭炮' },
         ];
+
+        const CATEGORIES = ['全部', ...new Set(PRODUCTS.map(p => p.category))];
 
         function App() {
             const [view, setView] = useState('pos');
             const [cart, setCart] = useState([]);
             const [searchTerm, setSearchTerm] = useState('');
+            const [activeCategory, setActiveCategory] = useState('全部');
             const [showReceipt, setShowReceipt] = useState(false);
             const [history, setHistory] = useState([]);
 
@@ -109,16 +114,13 @@
             }, []);
 
             const filteredProducts = useMemo(() => {
-                return PRODUCTS.filter(p => 
-                    p.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    p.name.toLowerCase().includes(searchTerm.toLowerCase())
-                );
-            }, [searchTerm]);
-
-            const getItemQty = (id) => {
-                const item = cart.find(i => i.id === id);
-                return item ? item.quantity : 0;
-            };
+                return PRODUCTS.filter(p => {
+                    const matchesSearch = p.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                         p.name.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchesCategory = activeCategory === '全部' || p.category === activeCategory;
+                    return matchesSearch && matchesCategory;
+                });
+            }, [searchTerm, activeCategory]);
 
             const updateQuantity = (product, delta) => {
                 setCart(prev => {
@@ -133,6 +135,7 @@
                 });
             };
 
+            const getItemQty = (id) => cart.find(i => i.id === id)?.quantity || 0;
             const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -141,8 +144,7 @@
                     id: Date.now(),
                     items: [...cart],
                     total: totalPrice,
-                    // 新增记录每单的总件数
-                    itemCount: totalItems, 
+                    itemCount: totalItems,
                     time: new Date().toLocaleString()
                 };
                 const updatedHistory = [newOrder, ...history];
@@ -153,64 +155,73 @@
             };
 
             return (
-                <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
-                    <header className="bg-red-600 text-white p-4 flex justify-between items-center shadow-lg sticky top-0 z-50">
+                <div className="min-h-screen flex flex-col max-w-5xl mx-auto shadow-2xl bg-white overflow-hidden">
+                    {/* 头部 */}
+                    <header className="bg-red-600 text-white p-4 flex justify-between items-center sticky top-0 z-50 shadow-md">
                         <div className="flex flex-col">
-                            <h1 className="text-xl font-black italic leading-none">FIREWORKS POS</h1>
-                            <span className="text-[10px] font-bold opacity-70 uppercase tracking-tighter">Mobile Checkout</span>
+                            <h1 className="text-xl font-black italic italic leading-none">烟花档口收银</h1>
+                            <span className="text-[10px] font-bold opacity-60 uppercase">Fireworks POS Pro</span>
                         </div>
                         <div className="flex bg-black/20 rounded-xl p-1 border border-white/10">
-                            <button onClick={() => setView('pos')} className={`px-4 py-1.5 rounded-lg text-sm font-black transition-all ${view === 'pos' ? 'bg-white text-red-600 shadow-sm' : 'text-white/80'}`}>点单</button>
-                            <button onClick={() => setView('history')} className={`px-4 py-1.5 rounded-lg text-sm font-black transition-all ${view === 'history' ? 'bg-white text-red-600 shadow-sm' : 'text-white/80'}`}>纪录</button>
+                            <button onClick={() => setView('pos')} className={`px-5 py-2 rounded-lg text-sm font-black transition-all ${view === 'pos' ? 'bg-white text-red-600 shadow-sm' : 'text-white/80'}`}>开单</button>
+                            <button onClick={() => setView('history')} className={`px-5 py-2 rounded-lg text-sm font-black transition-all ${view === 'history' ? 'bg-white text-red-600 shadow-sm' : 'text-white/80'}`}>纪录</button>
                         </div>
                     </header>
 
                     {view === 'pos' ? (
                         <>
-                            <div className="p-4 bg-white border-b sticky top-[62px] z-40 shadow-sm">
-                                <input 
-                                    type="text" 
-                                    placeholder="输入代号 (如 33) 或名字..." 
-                                    className="w-full p-4 bg-slate-100 rounded-2xl font-black text-lg focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all"
-                                    value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                />
+                            {/* 搜索和分类筛选 */}
+                            <div className="bg-white border-b sticky top-[68px] z-40">
+                                <div className="p-4 pb-2">
+                                    <input 
+                                        type="text" 
+                                        placeholder="🔍 搜索代号或名字..." 
+                                        className="w-full p-4 bg-slate-100 rounded-2xl font-black text-lg focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all border-2 border-transparent focus:border-red-200"
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex overflow-x-auto p-4 pt-0 gap-2 no-scrollbar">
+                                    {CATEGORIES.map(cat => (
+                                        <button 
+                                            key={cat}
+                                            onClick={() => setActiveCategory(cat)}
+                                            className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-black transition-all border-2 ${activeCategory === cat ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-100 text-slate-400'}`}
+                                        >
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                            <main className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-3 pb-40">
+
+                            {/* 产品列表 */}
+                            <main className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-3 pb-40 bg-slate-50 overflow-y-auto flex-1">
                                 {filteredProducts.map(p => {
                                     const qty = getItemQty(p.id);
                                     return (
-                                        <div key={p.id} className={`bg-white rounded-[2rem] shadow-sm border-2 transition-all flex flex-col p-3 ${qty > 0 ? 'border-red-200 ring-4 ring-red-500/5' : 'border-slate-50'}`}>
-                                            <div onClick={() => updateQuantity(p, 1)} className="w-full bg-indigo-50 text-indigo-700 py-3 rounded-2xl mb-2 flex justify-center items-center active-scale cursor-pointer">
-                                                <span className="text-xl font-black tracking-wider uppercase">{p.id}</span>
+                                        <div key={p.id} className={`bg-white rounded-[2rem] shadow-sm border-2 transition-all flex flex-col p-3 group ${qty > 0 ? 'border-red-300 ring-4 ring-red-500/5' : 'border-white'}`}>
+                                            <div onClick={() => updateQuantity(p, 1)} className="w-full bg-indigo-50 text-indigo-700 py-4 rounded-2xl mb-2 flex justify-center items-center active-scale cursor-pointer">
+                                                <span className="text-2xl font-black tracking-widest uppercase">{p.id}</span>
                                             </div>
                                             
-                                            <div onClick={() => updateQuantity(p, 1)} className="text-sm font-bold text-slate-600 h-10 line-clamp-2 leading-tight px-1 mb-2 cursor-pointer">
+                                            <div className="px-1 mb-1">
+                                                <span className="text-[9px] font-black text-indigo-400 bg-indigo-50 px-2 py-0.5 rounded uppercase">{p.category}</span>
+                                            </div>
+                                            
+                                            <div onClick={() => updateQuantity(p, 1)} className="text-sm font-bold text-slate-700 h-10 line-clamp-2 leading-tight px-1 mb-2 cursor-pointer">
                                                 {p.name}
                                             </div>
                                             
                                             <div className="mt-auto flex flex-col gap-2">
                                                 <div className="flex items-baseline px-1">
                                                     <span className="text-[10px] font-black text-slate-400 mr-0.5">RM</span>
-                                                    <span className="text-lg font-black">{p.price.toFixed(2)}</span>
+                                                    <span className="text-xl font-black text-slate-900 font-mono">{p.price.toFixed(2)}</span>
                                                 </div>
                                                 
                                                 <div className="flex items-center justify-between bg-slate-100 rounded-2xl p-1">
-                                                    <button 
-                                                        onClick={() => updateQuantity(p, -1)}
-                                                        className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-xl transition-colors ${qty > 0 ? 'text-slate-600 active:bg-red-100 active:text-red-600' : 'text-slate-300 cursor-not-allowed'}`}
-                                                    >
-                                                        －
-                                                    </button>
-                                                    <span className={`font-black text-lg w-6 text-center ${qty > 0 ? 'text-red-600' : 'text-slate-400'}`}>
-                                                        {qty}
-                                                    </span>
-                                                    <button 
-                                                        onClick={() => updateQuantity(p, 1)}
-                                                        className="w-10 h-10 flex items-center justify-center rounded-xl font-black text-xl text-indigo-600 active:bg-indigo-100"
-                                                    >
-                                                        ＋
-                                                    </button>
+                                                    <button onClick={() => updateQuantity(p, -1)} className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-2xl ${qty > 0 ? 'text-slate-600' : 'text-slate-300'}`} disabled={qty === 0}>－</button>
+                                                    <span className={`font-black text-xl w-6 text-center ${qty > 0 ? 'text-red-600' : 'text-slate-400'}`}>{qty}</span>
+                                                    <button onClick={() => updateQuantity(p, 1)} className="w-10 h-10 flex items-center justify-center rounded-xl font-black text-2xl text-indigo-600">＋</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -219,104 +230,95 @@
                             </main>
                         </>
                     ) : (
-                        <main className="p-4 space-y-4 pb-20">
-                            <div className="flex justify-between items-center mb-2">
-                                <h2 className="text-2xl font-black">今日销售紀錄</h2>
-                                <span className="text-xs font-bold text-slate-400 uppercase">Total Orders: {history.length}</span>
+                        /* 历史纪录 */
+                        <main className="p-4 space-y-4 pb-20 overflow-y-auto flex-1 bg-slate-50">
+                            <div className="flex justify-between items-end mb-2">
+                                <h2 className="text-2xl font-black text-slate-800 tracking-tighter">销售紀錄</h2>
+                                <span className="text-[10px] font-black text-slate-400 uppercase">总订单: {history.length}</span>
                             </div>
-                            {history.map(order => {
-                                // 如果旧数据没有 itemCount，则现场计算一次
-                                const orderTotalItems = order.itemCount || order.items.reduce((sum, i) => sum + i.quantity, 0);
-                                return (
-                                    <div key={order.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase">Order Time</span>
-                                                <span className="text-sm font-bold text-slate-700">{order.time}</span>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="text-[10px] font-black text-red-400 uppercase block leading-none">Total</span>
-                                                <span className="text-2xl font-black text-red-600">RM {order.total.toFixed(2)}</span>
-                                            </div>
+                            {history.map(order => (
+                                <div key={order.id} className="bg-white p-5 rounded-[2.5rem] shadow-sm border border-slate-100 animate-in slide-in-from-right duration-300">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Time</span>
+                                            <span className="text-xs font-bold text-slate-600">{order.time}</span>
                                         </div>
-                                        
-                                        {/* 销售纪录卡片中：新增已选件数显示 */}
-                                        <div className="flex justify-between items-center px-4 py-2 bg-indigo-50/50 rounded-xl mb-3 border border-indigo-100/50">
-                                            <span className="text-xs font-black text-indigo-600 uppercase">本单已选件数</span>
-                                            <span className="text-sm font-black text-indigo-700">{orderTotalItems} 件</span>
-                                        </div>
-
-                                        <div className="bg-slate-50 rounded-2xl p-4 flex flex-wrap gap-2">
-                                            {order.items.map((i, idx) => (
-                                                <span key={idx} className="bg-white px-3 py-1 rounded-lg text-xs font-bold border border-slate-100">
-                                                    <span className="text-indigo-600 mr-1">[{i.id}]</span> {i.name} x{i.quantity}
-                                                </span>
-                                            ))}
+                                        <div className="text-right">
+                                            <span className="text-[9px] font-black text-red-400 uppercase block">Order Total</span>
+                                            <span className="text-2xl font-black text-red-600 font-mono">RM {order.total.toFixed(2)}</span>
                                         </div>
                                     </div>
-                                );
-                            })}
-                            {history.length === 0 && (
-                                <div className="text-center py-20 text-slate-400 font-bold">暂时没有销售纪录</div>
-                            )}
+                                    <div className="flex justify-between items-center px-4 py-2 bg-indigo-50/50 rounded-2xl mb-4 border border-indigo-100">
+                                        <span className="text-[10px] font-black text-indigo-600 uppercase">本单已选件数</span>
+                                        <span className="text-sm font-black text-indigo-700">{order.itemCount} 件</span>
+                                    </div>
+                                    <div className="bg-slate-50 rounded-3xl p-4 flex flex-wrap gap-2">
+                                        {order.items.map((i, idx) => (
+                                            <span key={idx} className="bg-white px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-100 shadow-sm">
+                                                <span className="text-indigo-600 mr-1">[{i.id}]</span> {i.name} <span className="text-red-500 ml-1 font-black">x{i.quantity}</span>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
                         </main>
                     )}
 
+                    {/* 底部结算条 */}
                     {cart.length > 0 && view === 'pos' && (
-                        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t shadow-[0_-10px_30px_rgba(0,0,0,0.1)] flex justify-between items-center z-50 animate-in slide-in-from-bottom duration-300">
-                            <div className="flex flex-col">
+                        <div className="fixed bottom-0 left-0 right-0 max-w-5xl mx-auto p-4 bg-white/95 backdrop-blur-md border-t-2 border-slate-50 shadow-[0_-15px_40px_rgba(0,0,0,0.15)] flex justify-between items-center z-50 rounded-t-[2.5rem]">
+                            <div className="flex flex-col pl-2">
                                 <span className="text-base font-black text-slate-500 uppercase tracking-tight">已选 {totalItems} 件</span>
                                 <div className="flex items-baseline gap-1 leading-none">
-                                    <span className="text-sm font-bold text-red-600 uppercase">RM</span>
-                                    <span className="text-4xl font-black text-red-600">{totalPrice.toFixed(2)}</span>
+                                    <span className="text-sm font-black text-red-600 uppercase italic">RM</span>
+                                    <span className="text-4xl font-black text-red-600 font-mono tracking-tighter">{totalPrice.toFixed(2)}</span>
                                 </div>
                             </div>
-                            <button onClick={() => setShowReceipt(true)} className="bg-red-600 text-white px-10 h-16 rounded-2xl font-black text-xl shadow-xl shadow-red-200 active-scale transition-all flex items-center gap-2">
+                            <button onClick={() => setShowReceipt(true)} className="bg-red-600 text-white px-12 h-16 rounded-[1.5rem] font-black text-xl shadow-2xl shadow-red-200 active-scale transition-all flex items-center gap-3">
                                 去收钱
                             </button>
                         </div>
                     )}
 
+                    {/* 结账对话框 */}
                     {showReceipt && (
-                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-                            <div className="bg-white w-full max-w-md rounded-t-[3rem] sm:rounded-[2.5rem] flex flex-col max-h-[85vh] shadow-2xl animate-in slide-in-from-bottom duration-300">
-                                <div className="p-8 pb-4 flex justify-between items-center border-b border-slate-50">
-                                    <h2 className="text-2xl font-black tracking-tight">确认订单</h2>
-                                    <button onClick={() => setShowReceipt(false)} className="bg-slate-100 p-2 rounded-full text-slate-400 hover:bg-slate-200">✕</button>
+                        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                            <div className="bg-white w-full max-w-md rounded-t-[3.5rem] sm:rounded-[3rem] flex flex-col max-h-[88vh] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
+                                <div className="p-8 pb-4 flex justify-between items-center">
+                                    <h2 className="text-3xl font-black tracking-tighter text-slate-800">核对订单</h2>
+                                    <button onClick={() => setShowReceipt(false)} className="bg-slate-100 p-2.5 rounded-full text-slate-400">✕</button>
                                 </div>
-                                <div className="flex-1 overflow-y-auto px-8 py-4 space-y-4">
+                                <div className="flex-1 overflow-y-auto px-8 py-4 space-y-4 no-scrollbar">
                                     {cart.map(item => (
-                                        <div key={item.id} className="flex items-center gap-4 py-2">
-                                            <div className="w-16 h-10 bg-indigo-50 text-indigo-700 rounded-xl flex items-center justify-center font-black text-xs uppercase shrink-0">{item.id}</div>
-                                            <div className="flex-1">
+                                        <div key={item.id} className="flex items-center gap-4 py-1">
+                                            <div className="w-16 h-10 bg-indigo-50 text-indigo-700 rounded-xl flex items-center justify-center font-black text-xs shrink-0">{item.id}</div>
+                                            <div className="flex-1 min-w-0">
                                                 <div className="font-bold text-slate-800 text-sm truncate leading-tight">{item.name}</div>
-                                                <div className="text-xs font-bold text-slate-400 uppercase">RM {item.price.toFixed(2)}</div>
+                                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">RM {item.price.toFixed(2)} · {item.category}</div>
                                             </div>
-                                            <div className="flex items-center gap-2 bg-slate-100 rounded-xl p-1 shrink-0">
-                                                <button onClick={() => updateQuantity(item, -1)} className="w-8 h-8 font-black text-slate-600 active:text-red-600">-</button>
-                                                <span className="font-black w-4 text-center text-sm">{item.quantity}</span>
-                                                <button onClick={() => updateQuantity(item, 1)} className="w-8 h-8 font-black text-slate-600 active:text-indigo-600">+</button>
+                                            <div className="flex items-center gap-2 bg-slate-100 rounded-2xl p-1 shrink-0">
+                                                <button onClick={() => updateQuantity(item, -1)} className="w-9 h-9 font-black text-xl text-slate-500">－</button>
+                                                <span className="font-black w-5 text-center text-sm">{item.quantity}</span>
+                                                <button onClick={() => updateQuantity(item, 1)} className="w-9 h-9 font-black text-xl text-slate-500">＋</button>
                                             </div>
                                         </div>
                                     ))}
-                                    
-                                    <div className="pt-4 mt-2 border-t border-dashed border-slate-200">
-                                        <div className="flex justify-between items-center mb-2 px-1">
-                                            <span className="text-lg font-black text-slate-500 uppercase tracking-tight">已选件数量</span>
-                                            <span className="text-xl font-black text-slate-800">{totalItems} 件</span>
+                                    <div className="pt-6 mt-4 border-t-2 border-dashed border-slate-100">
+                                        <div className="flex justify-between items-center mb-3 px-2">
+                                            <span className="text-lg font-black text-slate-400 uppercase tracking-tight">已选件数量统计</span>
+                                            <span className="text-2xl font-black text-slate-800">{totalItems} 件</span>
                                         </div>
-                                        
-                                        <div className="bg-red-50 p-6 rounded-3xl flex justify-between items-end border border-red-100">
-                                            <span className="font-black text-red-600 uppercase text-sm mb-1">Total Payable</span>
-                                            <div className="text-right">
+                                        <div className="bg-red-50 p-6 rounded-[2rem] flex justify-between items-end border-2 border-red-100 shadow-inner">
+                                            <span className="font-black text-red-600 uppercase text-xs mb-1">Total Payable</span>
+                                            <div className="text-right leading-none">
                                                 <span className="text-sm font-black text-red-600 mr-1 italic">RM</span>
-                                                <span className="text-5xl font-black text-red-600 leading-none">{totalPrice.toFixed(2)}</span>
+                                                <span className="text-5xl font-black text-red-600 font-mono tracking-tighter">{totalPrice.toFixed(2)}</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="p-8 pt-4">
-                                    <button onClick={finalizeOrder} className="w-full bg-red-600 text-white py-5 rounded-[1.5rem] font-black text-2xl shadow-xl shadow-red-100 active-scale transition-all uppercase tracking-tight">确认收到钱</button>
+                                <div className="p-8 pt-2">
+                                    <button onClick={finalizeOrder} className="w-full bg-red-600 text-white py-6 rounded-[2rem] font-black text-2xl shadow-2xl shadow-red-200 active-scale transition-all uppercase tracking-tight">确认收到钱</button>
                                 </div>
                             </div>
                         </div>
